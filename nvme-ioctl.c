@@ -20,6 +20,7 @@
 #include <linux/types.h>
 
 #include "nvme-ioctl.h"
+#include "nvme-host.h"
 
 static int nvme_verify_chr(int fd)
 {
@@ -89,10 +90,22 @@ int nvme_submit_passthru(int fd, int ioctl_cmd, struct nvme_passthru_cmd *cmd)
 	return ioctl(fd, ioctl_cmd, cmd);
 }
 
-static int nvme_submit_admin_passthru(int fd, struct nvme_passthru_cmd *cmd)
+#if 0
+int nvme_submit_admin_passthru(int fd, struct nvme_passthru_cmd *cmd)
 {
 	return ioctl(fd, NVME_IOCTL_ADMIN_CMD, cmd);
 }
+#endif
+
+#if 1
+//extern struct nvme_host *global_host;
+int nvme_submit_admin_passthru(int fd, struct nvme_passthru_cmd *cmd)
+{
+//	printf("%s\n", __FUNCTION__);
+//	return ioctl(fd, NVME_IOCTL_ADMIN_CMD, cmd);
+	return global_host->ops->submit_admin_passthru(fd, cmd);
+}
+#endif
 
 static int nvme_submit_io_passthru(int fd, struct nvme_passthru_cmd *cmd)
 {
@@ -346,6 +359,7 @@ int nvme_identify(int fd, __u32 nsid, __u32 cdw10, void *data)
 		.cdw10		= cdw10,
 	};
 
+//	printf("%s\n", __FUNCTION__);
 	return nvme_submit_admin_passthru(fd, &cmd);
 }
 

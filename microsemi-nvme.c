@@ -1,0 +1,235 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <inttypes.h>
+#include <errno.h>
+#include <limits.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <dirent.h>
+
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#include <switchtec/switchtec.h>
+#include <switchtec/mrpc.h>
+
+#include "linux/nvme_ioctl.h"
+
+#include "nvme.h"
+#include "nvme-print.h"
+#include "nvme-ioctl.h"
+#include "plugin.h"
+#include "json.h"
+
+#include "pax-nvme-host.h"
+
+#include "argconfig.h"
+#include "suffix.h"
+#include <sys/ioctl.h>
+#define CREATE_CMD
+#include "microsemi-nvme.h"
+
+static const char *dev = "/dev/";
+
+static void pax_show_list_item(struct list_item list_item)
+{
+	long long int lba = 1 << list_item.ns.lbaf[(list_item.ns.flbas & 0x0f)].ds;
+	double nsze       = le64_to_cpu(list_item.ns.nsze) * lba;
+	double nuse       = le64_to_cpu(list_item.ns.nuse) * lba;
+
+	const char *s_suffix = suffix_si_get(&nsze);
+	const char *u_suffix = suffix_si_get(&nuse);
+	const char *l_suffix = suffix_binary_get(&lba);
+
+	char usage[128];
+	char format[128];
+
+	sprintf(usage,"%6.2f %2sB / %6.2f %2sB", nuse, u_suffix,
+		nsze, s_suffix);
+	sprintf(format,"%3.0f %2sB + %2d B", (double)lba, l_suffix,
+		list_item.ns.lbaf[(list_item.ns.flbas & 0x0f)].ms);
+	printf("%-26s %-*.*s %-*.*s %-9d %-26s %-16s %-.*s\n", list_item.node,
+            (int)sizeof(list_item.ctrl.sn), (int)sizeof(list_item.ctrl.sn), list_item.ctrl.sn,
+            (int)sizeof(list_item.ctrl.mn), (int)sizeof(list_item.ctrl.mn), list_item.ctrl.mn,
+            list_item.nsid, usage, format, (int)sizeof(list_item.ctrl.fr), list_item.ctrl.fr);
+}
+
+void pax_show_list_items(struct list_item *list_items, unsigned len)
+{
+	unsigned i;
+
+	printf("%-26s %-20s %-40s %-9s %-26s %-16s %-8s\n",
+	    "Node", "SN", "Model", "Namespace", "Usage", "Format", "FW Rev");
+	printf("%-26s %-20s %-40s %-9s %-26s %-16s %-8s\n",
+            "--------------------------", "--------------------", "----------------------------------------",
+            "---------", "--------------------------", "----------------", "--------");
+	for (i = 0 ; i < len ; i++)
+		pax_show_list_item(list_items[i]);
+
+}
+
+static int pax_get_nvme_info(int fd, struct list_item *item, int nsid, const char *node)
+{
+	int err;
+
+	err = nvme_identify_ctrl(fd, &item->ctrl);
+	if (err)
+		return err;
+	item->nsid = nsid;
+	if (item->nsid <= 0)
+		return item->nsid;
+	err = nvme_identify_ns(fd, item->nsid,
+			       0, &item->ns);
+	if (err)
+		return err;
+	strcpy(item->node, node);
+	item->block = 1;//S_ISBLK(nvme_stat.st_mode);
+
+	return 0;
+}
+
+static int scan_pax_dev_filter(const struct dirent *d)
+{
+	char path[264];
+	struct stat bd;
+
+	if (d->d_name[0] == '.')
+		return 0;
+
+	if (strstr(d->d_name, "switchtec")) {
+		snprintf(path, sizeof(path), "%s%s", dev, d->d_name);
+		if (stat(path, &bd))
+			return 0;
+		return 1;
+	}
+	return 0;
+}
+
+#define NVME_CLASS	0x010802
+#define CAP_PF		0x3
+static int pax_get_nvme_pf_functions(struct pax_nvme_host *pax, struct fabiov_db_dump_ep_port_attached_device_function *functions, int max_functions)
+{
+	int i, j;
+	int index;
+	int ret;
+	int n;
+	struct fabiov_db_dump_pax_all pax_all;
+	struct fabiov_db_dump_ep_port *ep_port;
+	struct fabiov_db_dump_ep_port_attached_device_function *function;
+
+	ret = switchtec_gfms_db_dump_pax_all(pax->dev, &pax_all);
+	if (ret) {
+		switchtec_perror("switchtec_gfms_db_dump_pax_all");
+		return ret;
+	}
+
+	index = 0;
+	for (i = 0; i < pax_all.ep_port_all.ep_port_count; i++) {
+		ep_port = &pax_all.ep_port_all.ep_ports[i]; 
+		if (ep_port->port_hdr.type == EP_ATTACHED_DEVICE_TYPE_EP) {
+			n = ep_port->ep_ep.ep_hdr.function_number;
+			for (j = 0; j < n; j++) {
+				function = &ep_port->ep_ep.functions[j];
+				if (function->sriov_cap_pf == CAP_PF 
+				    && function->device_class == NVME_CLASS)
+					memcpy(&functions[index++], 
+						function, 
+						sizeof(*function));
+			}
+		}
+	}
+
+	return index;
+}
+
+static int microsemi_list(int argc, char **argv, struct command *command,
+		struct plugin *plugin)
+{
+	char path[264];
+	char node[300];
+	struct list_item *list_items;
+	unsigned int i, j, l, n, function_n;
+	int fmt, ret, fd;
+	struct dirent **pax_devices;
+	struct pax_nvme_host *pax;
+	__u32 ns_list[1024] = {0};
+	struct fabiov_db_dump_ep_port_attached_device_function functions[1024];
+
+	const char *desc = "Retrieve basic information for the given Microsemi device";
+	struct config {
+		char *output_format;
+	};
+
+	struct config cfg = {
+		.output_format = "normal",
+	};
+
+	const struct argconfig_commandline_options opts[] = {
+		{"output-format", 'o', "FMT", CFG_STRING, &cfg.output_format, required_argument, "Output Format: normal|json"},
+		{NULL}
+	};
+
+	ret = argconfig_parse(argc, argv, desc, opts, &cfg, sizeof(cfg));
+	if (ret < 0)
+		return ret;
+
+	fmt = validate_output_format(cfg.output_format);
+
+	if (fmt != JSON && fmt != NORMAL)
+		return -EINVAL;
+
+	n = scandir(dev, &pax_devices, scan_pax_dev_filter, alphasort);
+	if (n < 0) {
+		fprintf(stderr, "no NVMe device(s) detected.\n");
+		return n;
+	}
+
+	list_items = calloc(n * 1024, sizeof(*list_items));
+	if (!list_items) {
+		fprintf(stderr, "can not allocate controller list payload\n");
+		return ENOMEM;
+	}
+
+	for (i = 0; i < n; i++) {
+		snprintf(path, sizeof(path), "%s%s", dev, pax_devices[i]->d_name);
+		pax = malloc(sizeof(struct pax_nvme_host));
+		pax->host.ops = &pax_ops;
+		global_host = &pax->host;
+		pax->dev = switchtec_open(path);
+		if (!pax->dev) {
+			switchtec_perror(path);
+			return 1;
+		}
+
+		function_n = pax_get_nvme_pf_functions(pax, functions, 1024);
+
+		for (j = 0; j < function_n; j++) {
+			int err;
+			pax->pdfid = functions[j].pdfid;
+			memset(ns_list, 0, sizeof(ns_list));
+			err = nvme_identify_ns_list(0, 0, 1, ns_list);
+			if (!err) {
+				for (l = 0; l < 4; l++)
+					if (ns_list[l]) {
+						printf("[%4u]:%#x\n", l, ns_list[l]);
+						fd = 0;
+						sprintf(node, "0x%04hxn%d@%s", pax->pdfid, ns_list[l], path);
+						ret = pax_get_nvme_info(fd, &list_items[l], ns_list[l], node);
+					}
+			}
+		}
+		switchtec_close(pax->dev);
+		free(pax);
+	}
+
+	if (fmt == JSON)
+		json_print_list_items(list_items, n);
+	else
+		pax_show_list_items(list_items, n);
+
+	free(list_items);
+
+	return 0;
+}
+
