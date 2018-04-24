@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include "linux/nvme_ioctl.h"
 #include "nvme.h"
+//#include "nvme-device.h"
 
 int nvme_get_nsid(int fd);
 
@@ -136,5 +137,7 @@ int nvme_get_properties(int fd, void **pbar);
 int nvme_set_property(int fd, int offset, int value);
 int nvme_sanitize(int fd, __u8 sanact, __u8 ause, __u8 owpass, __u8 oipbp,
 		  __u8 no_dealloc, __u32 ovrpat);
+
+int is_blk(void);
 
 #endif				/* _NVME_LIB_H */

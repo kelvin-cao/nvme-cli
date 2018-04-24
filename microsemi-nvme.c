@@ -22,7 +22,7 @@
 #include "plugin.h"
 #include "json.h"
 
-#include "pax-nvme-host.h"
+#include "pax-nvme-device.h"
 
 #include "argconfig.h"
 #include "suffix.h"
@@ -69,26 +69,6 @@ void pax_show_list_items(struct list_item *list_items, unsigned len)
 
 }
 
-static int pax_get_nvme_info(int fd, struct list_item *item, int nsid, const char *node)
-{
-	int err;
-
-	err = nvme_identify_ctrl(fd, &item->ctrl);
-	if (err)
-		return err;
-	item->nsid = nsid;
-	if (item->nsid <= 0)
-		return item->nsid;
-	err = nvme_identify_ns(fd, item->nsid,
-			       0, &item->ns);
-	if (err)
-		return err;
-	strcpy(item->node, node);
-	item->block = 1;//S_ISBLK(nvme_stat.st_mode);
-
-	return 0;
-}
-
 static int scan_pax_dev_filter(const struct dirent *d)
 {
 	char path[264];
@@ -108,7 +88,7 @@ static int scan_pax_dev_filter(const struct dirent *d)
 
 #define NVME_CLASS	0x010802
 #define CAP_PF		0x3
-static int pax_get_nvme_pf_functions(struct pax_nvme_host *pax, struct fabiov_db_dump_ep_port_attached_device_function *functions, int max_functions)
+static int pax_get_nvme_pf_functions(struct pax_nvme_device *pax, struct fabiov_db_dump_ep_port_attached_device_function *functions, int max_functions)
 {
 	int i, j;
 	int index;
@@ -149,10 +129,12 @@ static int microsemi_list(int argc, char **argv, struct command *command,
 	char path[264];
 	char node[300];
 	struct list_item *list_items;
-	unsigned int i, j, l, n, function_n;
-	int fmt, ret, fd;
+	unsigned int i, j, k, n, function_n;
+	unsigned int index;
+	int fmt, ret;
+	int err;
 	struct dirent **pax_devices;
-	struct pax_nvme_host *pax;
+	struct pax_nvme_device *pax;
 	__u32 ns_list[1024] = {0};
 	struct fabiov_db_dump_ep_port_attached_device_function functions[1024];
 
@@ -191,11 +173,12 @@ static int microsemi_list(int argc, char **argv, struct command *command,
 		return ENOMEM;
 	}
 
+	index = 0;
 	for (i = 0; i < n; i++) {
 		snprintf(path, sizeof(path), "%s%s", dev, pax_devices[i]->d_name);
-		pax = malloc(sizeof(struct pax_nvme_host));
-		pax->host.ops = &pax_ops;
-		global_host = &pax->host;
+		pax = malloc(sizeof(struct pax_nvme_device));
+		pax->device.ops = &pax_ops;
+		global_device = &pax->device;
 		pax->dev = switchtec_open(path);
 		if (!pax->dev) {
 			switchtec_perror(path);
@@ -205,17 +188,16 @@ static int microsemi_list(int argc, char **argv, struct command *command,
 		function_n = pax_get_nvme_pf_functions(pax, functions, 1024);
 
 		for (j = 0; j < function_n; j++) {
-			int err;
 			pax->pdfid = functions[j].pdfid;
 			memset(ns_list, 0, sizeof(ns_list));
 			err = nvme_identify_ns_list(0, 0, 1, ns_list);
 			if (!err) {
-				for (l = 0; l < 4; l++)
-					if (ns_list[l]) {
-						printf("[%4u]:%#x\n", l, ns_list[l]);
-						fd = 0;
-						sprintf(node, "0x%04hxn%d@%s", pax->pdfid, ns_list[l], path);
-						ret = pax_get_nvme_info(fd, &list_items[l], ns_list[l], node);
+				for (k = 0; k < 1024; k++)
+					if (ns_list[k]) {
+						printf("[%4u]:%#x\n", k, ns_list[k]);
+						sprintf(node, "0x%04hxn%d@%s", pax->pdfid, ns_list[k], path);
+						pax->ns_id = ns_list[k];
+						ret = get_nvme_info(0, &list_items[index++], node);
 					}
 			}
 		}
@@ -224,9 +206,9 @@ static int microsemi_list(int argc, char **argv, struct command *command,
 	}
 
 	if (fmt == JSON)
-		json_print_list_items(list_items, n);
+		json_print_list_items(list_items, index);
 	else
-		pax_show_list_items(list_items, n);
+		pax_show_list_items(list_items, index);
 
 	free(list_items);
 

@@ -51,10 +51,9 @@
 #include "nvme-print.h"
 #include "nvme-ioctl.h"
 #include "nvme-lightnvm.h"
-//#include "nvme-host.h"
-#include "pax-nvme-host.h"
-#include "rc-nvme-host.h"
-#include "nvme-host.h"
+#include "pax-nvme-device.h"
+#include "rc-nvme-device.h"
+#include "nvme-device.h"
 #include "plugin.h"
 
 #include "argconfig.h"
@@ -100,7 +99,7 @@ static unsigned long long elapsed_utime(struct timeval start_time,
 	return ret;
 }
 
-struct nvme_host *global_host;
+struct nvme_device *global_device;
 static int open_dev(const char *dev)
 {
 	int err, fd;
@@ -108,8 +107,8 @@ static int open_dev(const char *dev)
 	char pdfid_str[64];
 	uint16_t pdfid;
 	uint32_t ns_id;
-	struct pax_nvme_host *pax;
-	struct rc_nvme_host *rc_host;
+	struct pax_nvme_device *pax;
+	struct rc_nvme_device *rc_device;
 	int n;
 
 	devicename = basename(dev);
@@ -120,28 +119,26 @@ static int open_dev(const char *dev)
 		if (!n) {
 			return -1;
 		}
-		pax = malloc(sizeof(struct pax_nvme_host));
+		pax = malloc(sizeof(struct pax_nvme_device));
 		pax->pdfid = pdfid;
-		pax->host.ops = &pax_ops;
+		pax->device.ops = &pax_ops;
 		if (n == 2) {
 			pax->is_blk = 1;
 			pax->ns_id = ns_id;
 		}
-		global_host = &pax->host;
-		global_host->type = NVME_HOST_TYPE_PAX;
+		global_device = &pax->device;
+		global_device->type = NVME_DEVICE_TYPE_PAX;
 
 		pax->dev = switchtec_open(device_str);
 		if (!pax->dev) {
 			switchtec_perror(device_str);
 			return 1;
 		}
-		fprintf(stdout, "pax->dev is %lx\n", (unsigned long)pax->dev);
 		fd = 0;
 		err = 0;
 
 		return fd;
 	} else if (strchr(dev, '/') || strchr(dev, '\\')) {
-		printf("device is %s\n", dev);
 		err = open(dev, O_RDONLY);
 		if (err < 0)
 			goto perror;
@@ -155,10 +152,10 @@ static int open_dev(const char *dev)
 			return -ENODEV;
 		}
 
-		rc_host = malloc(sizeof(struct rc_nvme_host));
-		rc_host->host.ops = &rc_ops;
-		global_host = &rc_host->host;
-		global_host->type = NVME_HOST_TYPE_RC;
+		rc_device = malloc(sizeof(struct rc_nvme_device));
+		rc_device->device.ops = &rc_ops;
+		global_device = &rc_device->device;
+		global_device->type = NVME_DEVICE_TYPE_RC;
 
 		return fd;
 	}
@@ -1444,7 +1441,7 @@ free_subsys:
 	return ret;
 }
 
-static int get_nvme_info(int fd, struct list_item *item, const char *node)
+int get_nvme_info(int fd, struct list_item *item, const char *node)
 {
 	int err;
 
@@ -1459,8 +1456,8 @@ static int get_nvme_info(int fd, struct list_item *item, const char *node)
 	if (err)
 		return err;
 	strcpy(item->node, node);
-	item->block = S_ISBLK(nvme_stat.st_mode);
-
+//	item->block = S_ISBLK(nvme_stat.st_mode);
+	item->block = is_blk();
 	return 0;
 }
 
@@ -1533,7 +1530,8 @@ static int list(int argc, char **argv, struct command *cmd, struct plugin *plugi
 
 	for (i = 0; i < n; i++) {
 		snprintf(path, sizeof(path), "%s%s", dev, devices[i]->d_name);
-		fd = open(path, O_RDONLY);
+//		fd = open(path, O_RDONLY);
+		fd = open_dev(path);
 		if (fd < 0) {
 			fprintf(stderr, "can not open %s: %s\n", path,
 					strerror(errno));
@@ -1774,13 +1772,6 @@ static int id_ns(int argc, char **argv, struct command *cmd, struct plugin *plug
 		goto close_fd;
 	}
 
-#if 0
-	if (global_host->type == NVME_HOST_TYPE_PAX && global_host->is_blk) {
-		cfg.namespace_id = global_host->ns_;
-		if (cfg.namespace_id <= 0)
-			return EINVAL;
-	}
-#endif
 	if (cfg.raw_binary)
 		fmt = BINARY;
 	if (cfg.vendor_specific)
@@ -1797,6 +1788,7 @@ static int id_ns(int argc, char **argv, struct command *cmd, struct plugin *plug
 		fprintf(stderr,
 			"Error: requesting namespace-id from non-block device\n");
 
+	printf("cfg.namespace_id is %d\n", cfg.namespace_id);
 	err = nvme_identify_ns(fd, cfg.namespace_id, cfg.force, &ns);
 	if (!err) {
 		if (fmt == BINARY)
