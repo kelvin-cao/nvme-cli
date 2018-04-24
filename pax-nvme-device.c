@@ -11,7 +11,6 @@ int pax_nvme_submit_admin_passthru(int fd, struct nvme_passthru_cmd *cmd)
 {
 	int ret;
 
-//	printf("here\n");
 	struct pax_nvme_device *pax;
 	struct fabiov_device_manage_req req;
 	struct fabiov_device_manage_rsp rsp;
@@ -23,9 +22,11 @@ int pax_nvme_submit_admin_passthru(int fd, struct nvme_passthru_cmd *cmd)
 	req.pdfid = pax->pdfid;
 	req.cmd_data[0] = 0x2;
 	memcpy(&req.cmd_data[1], cmd, 64 - 4);
+#if 0
 	for (int i = 0; i < 16; i++) {
 		fprintf(stdout, "0x%x ", req.cmd_data[i]);
 	}
+#endif
 	fprintf(stdout, "\n");
 	req.max_rsp_len = sizeof(rsp.rsp_data)/4;
 	ret = switchtec_device_manage(pax->dev, &req, &rsp);
@@ -92,8 +93,7 @@ int pax_nvme_get_nsid(int fd)
 }
 
 struct nvme_device_ops pax_ops = {
-	.submit_admin_passthru = pax_nvme_submit_admin_passthru,
-	.is_blk = pax_is_blk,
+	.nvme_submit_admin_passthru = pax_nvme_submit_admin_passthru,
 	.nvme_get_nsid = pax_nvme_get_nsid,
 	.nvme_io = pax_nvme_io,
 	.nvme_subsystem_reset = pax_nvme_subsystem_reset,
@@ -101,5 +101,6 @@ struct nvme_device_ops pax_ops = {
 	.nvme_ns_rescan = pax_nvme_ns_rescan,
 	.nvme_submit_passthru = pax_nvme_submit_passthru,
 	.nvme_submit_io_passthru = pax_nvme_submit_io_passthru,
+	.is_blk = pax_is_blk,
 };
 

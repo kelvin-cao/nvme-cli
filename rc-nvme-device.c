@@ -52,8 +52,7 @@ int rc_nvme_submit_io_passthru(int fd, struct nvme_passthru_cmd *cmd)
 }
 
 struct nvme_device_ops rc_ops = {
-	.submit_admin_passthru = rc_nvme_submit_admin_passthru,
-	.is_blk = rc_is_blk,
+	.nvme_submit_admin_passthru = rc_nvme_submit_admin_passthru,
 	.nvme_get_nsid = rc_nvme_get_nsid,
 	.nvme_io = rc_nvme_io,
 	.nvme_subsystem_reset = rc_nvme_subsystem_reset,
@@ -61,5 +60,6 @@ struct nvme_device_ops rc_ops = {
 	.nvme_ns_rescan = rc_nvme_ns_rescan,
 	.nvme_submit_passthru = rc_nvme_submit_passthru,
 	.nvme_submit_io_passthru = rc_nvme_submit_io_passthru,
+	.is_blk = rc_is_blk,
 };
 

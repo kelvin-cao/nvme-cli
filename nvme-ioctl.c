@@ -97,7 +97,7 @@ int nvme_submit_passthru(int fd, int ioctl_cmd, struct nvme_passthru_cmd *cmd)
 
 int nvme_submit_admin_passthru(int fd, struct nvme_passthru_cmd *cmd)
 {
-	return global_device->ops->submit_admin_passthru(fd, cmd);
+	return global_device->ops->nvme_submit_admin_passthru(fd, cmd);
 }
 
 static int nvme_submit_io_passthru(int fd, struct nvme_passthru_cmd *cmd)

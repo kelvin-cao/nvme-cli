@@ -5,11 +5,8 @@
 #include <stdbool.h>
 #include "linux/nvme_ioctl.h"
 #include "nvme.h"
-//#include "nvme-device.h"
 
 int nvme_get_nsid(int fd);
-
-int nvme_submit_admin_passthru(int fd, struct nvme_passthru_cmd *cmd);
 
 /* Generic passthrough */
 int nvme_submit_passthru(int fd, int ioctl_cmd, struct nvme_passthru_cmd *cmd);

@@ -22,12 +22,12 @@
 #include "plugin.h"
 #include "json.h"
 
-#include "pax-nvme-device.h"
-
 #include "argconfig.h"
 #include "suffix.h"
 #include <sys/ioctl.h>
 #define CREATE_CMD
+
+#include "pax-nvme-device.h"
 #include "microsemi-nvme.h"
 
 static const char *dev = "/dev/";
@@ -106,15 +106,15 @@ static int pax_get_nvme_pf_functions(struct pax_nvme_device *pax, struct fabiov_
 
 	index = 0;
 	for (i = 0; i < pax_all.ep_port_all.ep_port_count; i++) {
-		ep_port = &pax_all.ep_port_all.ep_ports[i]; 
+		ep_port = &pax_all.ep_port_all.ep_ports[i];
 		if (ep_port->port_hdr.type == EP_ATTACHED_DEVICE_TYPE_EP) {
 			n = ep_port->ep_ep.ep_hdr.function_number;
 			for (j = 0; j < n; j++) {
 				function = &ep_port->ep_ep.functions[j];
-				if (function->sriov_cap_pf == CAP_PF 
+				if (function->sriov_cap_pf == CAP_PF
 				    && function->device_class == NVME_CLASS)
-					memcpy(&functions[index++], 
-						function, 
+					memcpy(&functions[index++],
+						function,
 						sizeof(*function));
 			}
 		}
@@ -131,6 +131,7 @@ static int microsemi_list(int argc, char **argv, struct command *command,
 	struct list_item *list_items;
 	unsigned int i, j, k, n, function_n;
 	unsigned int index;
+	int fd = 0;
 	int fmt, ret;
 	int err;
 	struct dirent **pax_devices;
@@ -182,7 +183,8 @@ static int microsemi_list(int argc, char **argv, struct command *command,
 		pax->dev = switchtec_open(path);
 		if (!pax->dev) {
 			switchtec_perror(path);
-			return 1;
+			free(pax);
+			return -ENODEV;
 		}
 
 		function_n = pax_get_nvme_pf_functions(pax, functions, 1024);
@@ -197,9 +199,13 @@ static int microsemi_list(int argc, char **argv, struct command *command,
 						printf("[%4u]:%#x\n", k, ns_list[k]);
 						sprintf(node, "0x%04hxn%d@%s", pax->pdfid, ns_list[k], path);
 						pax->ns_id = ns_list[k];
-						ret = get_nvme_info(0, &list_items[index++], node);
+						ret = get_nvme_info(fd, &list_items[index++], node);
 					}
-			}
+			} else if (err > 0)
+				fprintf(stderr, "NVMe Status:%s(%x) NSID:%d\n",
+						nvme_status_to_string(err), err, 0);
+			else
+				perror("id namespace list");
 		}
 		switchtec_close(pax->dev);
 		free(pax);
@@ -214,4 +220,3 @@ static int microsemi_list(int argc, char **argv, struct command *command,
 
 	return 0;
 }
-

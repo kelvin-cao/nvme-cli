@@ -64,7 +64,6 @@
 #define min(x, y) ((x) > (y) ? (y) : (x))
 #define max(x, y) ((x) > (y) ? (x) : (y))
 
-//static struct stat nvme_stat;
 struct stat nvme_stat;
 const char *devicename;
 
@@ -99,8 +98,8 @@ static unsigned long long elapsed_utime(struct timeval start_time,
 	return ret;
 }
 
-struct nvme_device *global_device;
-static int open_dev(const char *dev)
+struct nvme_device *global_device = NULL;
+int open_dev(const char *path)
 {
 	int err, fd;
 	char device_str[64];
@@ -108,13 +107,12 @@ static int open_dev(const char *dev)
 	uint16_t pdfid;
 	uint32_t ns_id;
 	struct pax_nvme_device *pax;
-	struct rc_nvme_device *rc_device;
+	struct rc_nvme_device *rc;
 	int n;
 
-	devicename = basename(dev);
+	devicename = basename(path);
 
-	if (sscanf(dev, "%2049[^@]@%s", pdfid_str, device_str) == 2) {
-		printf("Open PAX.\n");
+	if (sscanf(path, "%2049[^@]@%s", pdfid_str, device_str) == 2) {
 		n = sscanf(pdfid_str, "%hxn%d", &pdfid, &ns_id);
 		if (!n) {
 			return -1;
@@ -132,14 +130,16 @@ static int open_dev(const char *dev)
 		pax->dev = switchtec_open(device_str);
 		if (!pax->dev) {
 			switchtec_perror(device_str);
-			return 1;
+			free(pax);
+			global_device  = NULL;
+			return -ENODEV;
 		}
 		fd = 0;
 		err = 0;
 
 		return fd;
-	} else if (strchr(dev, '/') || strchr(dev, '\\')) {
-		err = open(dev, O_RDONLY);
+	} else if (strchr(path, '/') || strchr(path, '\\')) {
+		err = open(path, O_RDONLY);
 		if (err < 0)
 			goto perror;
 		fd = err;
@@ -148,22 +148,45 @@ static int open_dev(const char *dev)
 		if (err < 0)
 			goto perror;
 		if (!S_ISCHR(nvme_stat.st_mode) && !S_ISBLK(nvme_stat.st_mode)) {
-			fprintf(stderr, "%s is not a block or character device\n", dev);
+			fprintf(stderr, "%s is not a block or character device\n", path);
 			return -ENODEV;
 		}
 
-		rc_device = malloc(sizeof(struct rc_nvme_device));
-		rc_device->device.ops = &rc_ops;
-		global_device = &rc_device->device;
+		rc = malloc(sizeof(struct rc_nvme_device));
+		rc->device.ops = &rc_ops;
+		global_device = &rc->device;
 		global_device->type = NVME_DEVICE_TYPE_RC;
 
 		return fd;
 	}
-	err = 0;
+	err = -1;
 
  perror:
-	perror(dev);
+	perror(path);
 	return err;
+}
+
+int close_dev()
+{
+	if (!global_device)
+		return 0;
+
+	if (global_device->type == NVME_DEVICE_TYPE_PAX) {
+		struct pax_nvme_device *pax;
+		pax = to_pax_nvme_device(global_device);
+		switchtec_close(pax->dev);
+		free(pax);
+
+		return 0;
+	} else if (global_device->type == NVME_DEVICE_TYPE_RC) {
+		struct rc_nvme_device *rc;
+		rc = to_rc_nvme_device(global_device);
+		free(rc);
+
+		return 0;
+	}
+
+	return -1;
 }
 
 static int check_arg_dev(int argc, char **argv)
@@ -1456,7 +1479,6 @@ int get_nvme_info(int fd, struct list_item *item, const char *node)
 	if (err)
 		return err;
 	strcpy(item->node, node);
-//	item->block = S_ISBLK(nvme_stat.st_mode);
 	item->block = is_blk();
 	return 0;
 }
@@ -1530,7 +1552,6 @@ static int list(int argc, char **argv, struct command *cmd, struct plugin *plugi
 
 	for (i = 0; i < n; i++) {
 		snprintf(path, sizeof(path), "%s%s", dev, devices[i]->d_name);
-//		fd = open(path, O_RDONLY);
 		fd = open_dev(path);
 		if (fd < 0) {
 			fprintf(stderr, "can not open %s: %s\n", path,
@@ -1778,7 +1799,6 @@ static int id_ns(int argc, char **argv, struct command *cmd, struct plugin *plug
 		flags |= VS;
 	if (cfg.human_readable)
 		flags |= HUMAN;
-//	if (!cfg.namespace_id && S_ISBLK(nvme_stat.st_mode)) {
 	if (!cfg.namespace_id && is_blk()) {
 		cfg.namespace_id = get_nsid(fd);
 		if (cfg.namespace_id <= 0)
@@ -4242,6 +4262,8 @@ int main(int argc, char **argv)
 	ret = handle_plugin(argc - 1, &argv[1], nvme.extensions);
 	if (ret == -ENOTTY)
 		general_help(&builtin);
+
+	close_dev(global_device);
 
 	return ret;
 }
