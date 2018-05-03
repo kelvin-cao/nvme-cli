@@ -7,37 +7,73 @@
 #include <switchtec/switchtec.h>
 #include <switchtec/mrpc.h>
 
+struct fabiov_device_manage_nvme_req
+{
+	struct fabiov_device_manage_req_hdr hdr;
+	uint32_t nvme_sqe[16];
+	uint8_t nvme_data[MRPC_MAX_DATA_LEN -
+		sizeof(struct fabiov_device_manage_req_hdr) -
+		(16 * 4)];
+};
+
+struct fabiov_device_manage_nvme_rsp
+{
+	struct fabiov_device_manage_rsp_hdr hdr;
+	uint32_t nvme_cqe[4];
+	uint8_t nvme_data[MRPC_MAX_DATA_LEN -
+		sizeof(struct fabiov_device_manage_rsp_hdr) -
+		(4 * 4)];
+};
+
 int pax_nvme_submit_admin_passthru(int fd, struct nvme_passthru_cmd *cmd)
 {
 	int ret;
 
 	struct pax_nvme_device *pax;
-	struct fabiov_device_manage_req req;
-	struct fabiov_device_manage_rsp rsp;
+	struct fabiov_device_manage_nvme_req req;
+	struct fabiov_device_manage_nvme_rsp rsp;
+	int data_len;
+	int status;
+	bool write = nvme_is_write((struct nvme_command *)cmd);
 
 	memset(&req, 0, sizeof(req));
 	memset(&rsp, 0, sizeof(rsp));
 	pax = to_pax_nvme_device(global_device);
 
-	req.pdfid = pax->pdfid;
-	req.cmd_data[0] = 0x2;
-	memcpy(&req.cmd_data[1], cmd, 64 - 4);
-#if 0
-	for (int i = 0; i < 16; i++) {
-		fprintf(stdout, "0x%x ", req.cmd_data[i]);
-	}
-#endif
-	fprintf(stdout, "\n");
-	req.max_rsp_len = sizeof(rsp.rsp_data)/4;
-	ret = switchtec_device_manage(pax->dev, &req, &rsp);
+	req.hdr.pdfid = htole16(pax->pdfid);
+	memcpy(&req.nvme_sqe, cmd, 16 * 4);
+
+	/* sqe[9] should be 0 per spec */
+	req.nvme_sqe[9] = 0;
+
+	if (cmd->data_len > sizeof(req.nvme_data))
+		data_len = sizeof(req.nvme_data);
+	else
+		data_len = cmd->data_len;
+
+	memcpy(req.nvme_data, (void *)cmd->addr, data_len);
+
+	req.hdr.req_len = htole16(((data_len + 3) & ~3) / 4 + 16);
+
+	ret = switchtec_device_manage(pax->dev,
+				     (struct fabiov_device_manage_req *)&req,
+				     (struct fabiov_device_manage_rsp *)&rsp);
 	if (ret) {
 		switchtec_perror("device_manage_cmd");
 		return ret;
 	}
 
-	memcpy((uint64_t *)cmd->addr, rsp.rsp_data, rsp.rsp_len * 4);
+	status = (rsp.nvme_cqe[3] & 0xfffe0000) >> 17;
+	if (!status) {
+		cmd->result = rsp.nvme_cqe[0];
+		if (!write) {
+			memcpy((uint64_t *)cmd->addr,
+				rsp.nvme_data,
+				(rsp.hdr.rsp_len - 4) * 4);
+		}
+	}
 
-	return ret;
+	return status;
 }
 
 int pax_nvme_io(int fd, struct nvme_user_io *io)

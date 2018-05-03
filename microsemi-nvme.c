@@ -196,7 +196,6 @@ static int microsemi_list(int argc, char **argv, struct command *command,
 			if (!err) {
 				for (k = 0; k < 1024; k++)
 					if (ns_list[k]) {
-						printf("[%4u]:%#x\n", k, ns_list[k]);
 						sprintf(node, "0x%04hxn%d@%s", pax->pdfid, ns_list[k], path);
 						pax->ns_id = ns_list[k];
 						ret = get_nvme_info(fd, &list_items[index++], node);
