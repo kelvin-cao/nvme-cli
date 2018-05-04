@@ -39,59 +39,7 @@ Node                       SN                   Model                           
 0x3300n5@/dev/switchtec0   S3HCNX0JC00648       SAMSUNG MZWLL800HEHP-00003               5           2.15  GB /   2.15  GB    512   B +  0 B   GPNA6B3T
 
 ```
-2. Create a 4GB namespace
-```
-#sudo ./nvme  create-ns 0x3300@/dev/switchtec0 -c 1048576 -s 1048576 -f 2
-create-ns: Success, created nsid:6
-```
-3. Attach a namespace to a controller
-```
-#sudo ./nvme attach-ns 0x3300@/dev/switchtec0 -n 6 -c 0x21
-attach-ns: Success, nsid:6
-```
-4. List all NVMe devices and namespaces
-```
-#sudo ./nvme microsemi list
-Node                       SN                   Model                                    Namespace Usage                      Format           FW Rev
--------------------------- -------------------- ---------------------------------------- --------- -------------------------- ---------------- --------
-0x3300n1@/dev/switchtec0   S3HCNX0JC00648       SAMSUNG MZWLL800HEHP-00003               1           6.55  MB /   6.55  MB    512   B +  0 B   GPNA6B3T
-0x3300n2@/dev/switchtec0   S3HCNX0JC00648       SAMSUNG MZWLL800HEHP-00003               2          13.11  MB /  13.11  MB    512   B +  0 B   GPNA6B3T
-0x3300n3@/dev/switchtec0   S3HCNX0JC00648       SAMSUNG MZWLL800HEHP-00003               3         131.07  MB / 131.07  MB    512   B +  0 B   GPNA6B3T
-0x3300n4@/dev/switchtec0   S3HCNX0JC00648       SAMSUNG MZWLL800HEHP-00003               4           2.15  GB /   2.15  GB    512   B +  0 B   GPNA6B3T
-0x3300n5@/dev/switchtec0   S3HCNX0JC00648       SAMSUNG MZWLL800HEHP-00003               5           2.15  GB /   2.15  GB    512   B +  0 B   GPNA6B3T
-0x3300n6@/dev/switchtec0   S3HCNX0JC00648       SAMSUNG MZWLL800HEHP-00003               6           4.29  GB /   4.29  GB      4 KiB +  0 B   GPNA6B3T
-```
-5. Detach a namespace from a controller
-```
-#sudo ./nvme detach-ns 0x3300@/dev/switchtec0 -n 6 -c 0x21
-detach-ns: Success, nsid:6
-```
-6. Delete a namespace
-```
-#sudo ./nvme delete-ns 0x3300@/dev/switchtec0 -n 6
-delete-ns: Success, deleted nsid:6
-```
-7. List all NVMe devices and namespaces
-```
-#sudo ./nvme microsemi list
-Node                       SN                   Model                                    Namespace Usage                      Format           FW Rev
--------------------------- -------------------- ---------------------------------------- --------- -------------------------- ---------------- --------
-0x3300n1@/dev/switchtec0   S3HCNX0JC00648       SAMSUNG MZWLL800HEHP-00003               1           6.55  MB /   6.55  MB    512   B +  0 B   GPNA6B3T
-0x3300n2@/dev/switchtec0   S3HCNX0JC00648       SAMSUNG MZWLL800HEHP-00003               2          13.11  MB /  13.11  MB    512   B +  0 B   GPNA6B3T
-0x3300n3@/dev/switchtec0   S3HCNX0JC00648       SAMSUNG MZWLL800HEHP-00003               3         131.07  MB / 131.07  MB    512   B +  0 B   GPNA6B3T
-0x3300n4@/dev/switchtec0   S3HCNX0JC00648       SAMSUNG MZWLL800HEHP-00003               4           2.15  GB /   2.15  GB    512   B +  0 B   GPNA6B3T
-0x3300n5@/dev/switchtec0   S3HCNX0JC00648       SAMSUNG MZWLL800HEHP-00003               5           2.15  GB /   2.15  GB    512   B +  0 B   GPNA6B3T
-```
-8. List namespace of a NVMe drive
-```
-#sudo ./nvme list-ns 0x3300@/dev/switchtec0
-[   0]:0x1
-[   1]:0x2
-[   2]:0x3
-[   3]:0x4
-[   4]:0x5
-```
-9. List controllers of a NVMe drive
+2. List controllers of a NVMe drive
 ```
 #sudo ./nvme list-ctrl 0x3300@/dev/switchtec0
 [   0]:0x1
@@ -110,5 +58,57 @@ Node                       SN                   Model                           
 [  13]:0xe
 [  14]:0xf
 [  15]:0x21
+```
+3. List namespaces of a NVMe drive
+```
+#sudo ./nvme list-ns 0x3300@/dev/switchtec0
+[   0]:0x1
+[   1]:0x2
+[   2]:0x3
+[   3]:0x4
+[   4]:0x5
+```
+4. Create a 4GB namespace
+```
+#sudo ./nvme  create-ns 0x3300@/dev/switchtec0 -c 1048576 -s 1048576 -f 2
+create-ns: Success, created nsid:6
+```
+5. Attach a namespace to a controller
+```
+#sudo ./nvme attach-ns 0x3300@/dev/switchtec0 -n 6 -c 0x21
+attach-ns: Success, nsid:6
+```
+6. List all NVMe devices and namespaces
+```
+#sudo ./nvme microsemi list
+Node                       SN                   Model                                    Namespace Usage                      Format           FW Rev
+-------------------------- -------------------- ---------------------------------------- --------- -------------------------- ---------------- --------
+0x3300n1@/dev/switchtec0   S3HCNX0JC00648       SAMSUNG MZWLL800HEHP-00003               1           6.55  MB /   6.55  MB    512   B +  0 B   GPNA6B3T
+0x3300n2@/dev/switchtec0   S3HCNX0JC00648       SAMSUNG MZWLL800HEHP-00003               2          13.11  MB /  13.11  MB    512   B +  0 B   GPNA6B3T
+0x3300n3@/dev/switchtec0   S3HCNX0JC00648       SAMSUNG MZWLL800HEHP-00003               3         131.07  MB / 131.07  MB    512   B +  0 B   GPNA6B3T
+0x3300n4@/dev/switchtec0   S3HCNX0JC00648       SAMSUNG MZWLL800HEHP-00003               4           2.15  GB /   2.15  GB    512   B +  0 B   GPNA6B3T
+0x3300n5@/dev/switchtec0   S3HCNX0JC00648       SAMSUNG MZWLL800HEHP-00003               5           2.15  GB /   2.15  GB    512   B +  0 B   GPNA6B3T
+0x3300n6@/dev/switchtec0   S3HCNX0JC00648       SAMSUNG MZWLL800HEHP-00003               6           4.29  GB /   4.29  GB      4 KiB +  0 B   GPNA6B3T
+```
+7. Detach a namespace from a controller
+```
+#sudo ./nvme detach-ns 0x3300@/dev/switchtec0 -n 6 -c 0x21
+detach-ns: Success, nsid:6
+```
+8. Delete a namespace
+```
+#sudo ./nvme delete-ns 0x3300@/dev/switchtec0 -n 6
+delete-ns: Success, deleted nsid:6
+```
+9. List all NVMe devices and namespaces
+```
+#sudo ./nvme microsemi list
+Node                       SN                   Model                                    Namespace Usage                      Format           FW Rev
+-------------------------- -------------------- ---------------------------------------- --------- -------------------------- ---------------- --------
+0x3300n1@/dev/switchtec0   S3HCNX0JC00648       SAMSUNG MZWLL800HEHP-00003               1           6.55  MB /   6.55  MB    512   B +  0 B   GPNA6B3T
+0x3300n2@/dev/switchtec0   S3HCNX0JC00648       SAMSUNG MZWLL800HEHP-00003               2          13.11  MB /  13.11  MB    512   B +  0 B   GPNA6B3T
+0x3300n3@/dev/switchtec0   S3HCNX0JC00648       SAMSUNG MZWLL800HEHP-00003               3         131.07  MB / 131.07  MB    512   B +  0 B   GPNA6B3T
+0x3300n4@/dev/switchtec0   S3HCNX0JC00648       SAMSUNG MZWLL800HEHP-00003               4           2.15  GB /   2.15  GB    512   B +  0 B   GPNA6B3T
+0x3300n5@/dev/switchtec0   S3HCNX0JC00648       SAMSUNG MZWLL800HEHP-00003               5           2.15  GB /   2.15  GB    512   B +  0 B   GPNA6B3T
 ```
 [0]: https://github.com/linux-nvme/nvme-cli
