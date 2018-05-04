@@ -99,6 +99,7 @@ static unsigned long long elapsed_utime(struct timeval start_time,
 }
 
 struct nvme_device *global_device = NULL;
+
 int open_dev(const char *path)
 {
 	int err, fd;
@@ -1808,7 +1809,6 @@ static int id_ns(int argc, char **argv, struct command *cmd, struct plugin *plug
 		fprintf(stderr,
 			"Error: requesting namespace-id from non-block device\n");
 
-	printf("cfg.namespace_id is %d\n", cfg.namespace_id);
 	err = nvme_identify_ns(fd, cfg.namespace_id, cfg.force, &ns);
 	if (!err) {
 		if (fmt == BINARY)
@@ -4231,7 +4231,7 @@ static int connect_all_cmd(int argc, char **argv, struct command *command, struc
 static int connect_cmd(int argc, char **argv, struct command *command, struct plugin *plugin)
 {
 	const char *desc = "Connect to NVMeoF subsystem";
-	return connect(desc, argc, argv);
+	return _connect(desc, argc, argv);
 }
 
 static int disconnect_cmd(int argc, char **argv, struct command *command, struct plugin *plugin)

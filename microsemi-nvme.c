@@ -141,14 +141,17 @@ static int microsemi_list(int argc, char **argv, struct command *command,
 
 	const char *desc = "Retrieve basic information for the given Microsemi device";
 	struct config {
+		char *moe_service;
 		char *output_format;
 	};
 
 	struct config cfg = {
+		.moe_service = NULL,
 		.output_format = "normal",
 	};
 
 	const struct argconfig_commandline_options opts[] = {
+		{"MOE-service", 'r', "IP:INST", CFG_STRING, &cfg.moe_service, required_argument, "MOE service handle: IP:instance"},
 		{"output-format", 'o', "FMT", CFG_STRING, &cfg.output_format, required_argument, "Output Format: normal|json"},
 		{NULL}
 	};
@@ -162,10 +165,14 @@ static int microsemi_list(int argc, char **argv, struct command *command,
 	if (fmt != JSON && fmt != NORMAL)
 		return -EINVAL;
 
-	n = scandir(dev, &pax_devices, scan_pax_dev_filter, alphasort);
-	if (n < 0) {
-		fprintf(stderr, "no NVMe device(s) detected.\n");
-		return n;
+	if (cfg.moe_service) {
+		n = 1;
+	} else {
+		n = scandir(dev, &pax_devices, scan_pax_dev_filter, alphasort);
+		if (n < 0) {
+			fprintf(stderr, "no NVMe device(s) detected.\n");
+			return n;
+		}
 	}
 
 	list_items = calloc(n * 1024, sizeof(*list_items));
@@ -176,7 +183,11 @@ static int microsemi_list(int argc, char **argv, struct command *command,
 
 	index = 0;
 	for (i = 0; i < n; i++) {
-		snprintf(path, sizeof(path), "%s%s", dev, pax_devices[i]->d_name);
+		if (cfg.moe_service)
+			snprintf(path, sizeof(path), "%s", cfg.moe_service);
+		else
+			snprintf(path, sizeof(path), "%s%s", dev, pax_devices[i]->d_name);
+
 		pax = malloc(sizeof(struct pax_nvme_device));
 		pax->device.ops = &pax_ops;
 		global_device = &pax->device;
