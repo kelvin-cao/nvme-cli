@@ -30,7 +30,7 @@ Swichtec-nvme-cli supports following features for NVMe drives behind PAX.
 ## Examples
 Here are some examples of managing the NVMe drives in a PAX fabric. For the NVMe drives connected directly to host, all commands from original nvme-cli are supported without any change.
 
-###Local fabric manager
+### Local Fabric Manager
 1. List all NVMe devices and namespaces
 ```
 #sudo ./nvme microsemi list
@@ -116,7 +116,7 @@ Node                       SN                   Model                           
 0x3300n5@/dev/switchtec0   SERIALNUMBER         VENDOR MODEL                             5           2.15  GB /   2.15  GB    512   B +  0 B   REVISION
 ```
 
-###Remote fabric manager
+### Remote Fabric Manager
 1. List all NVMe devices and namespaces
 ```
 #sudo ./nvme microsemi list -r 10.188.117.80:0
