@@ -33,7 +33,7 @@ Here are some examples of managing the NVMe drives in a PAX fabric. For the NVMe
 ### Local Fabric Manager
 1. List all NVMe devices and namespaces
 ```
-#sudo ./nvme microsemi list
+#sudo ./nvme switchtec list
 Node                       SN                   Model                                    Namespace Usage                      Format           FW Rev
 -------------------------- -------------------- ---------------------------------------- --------- -------------------------- ---------------- --------
 0x3300n1@/dev/switchtec0   SERIALNUMBER         VENDOR MODEL                             1           6.55  MB /   6.55  MB    512   B +  0 B   REVISION
@@ -84,7 +84,7 @@ attach-ns: Success, nsid:6
 ```
 6. List all NVMe devices and namespaces
 ```
-#sudo ./nvme microsemi list
+#sudo ./nvme switchtec list
 Node                       SN                   Model                                    Namespace Usage                      Format           FW Rev
 -------------------------- -------------------- ---------------------------------------- --------- -------------------------- ---------------- --------
 0x3300n1@/dev/switchtec0   SERIALNUMBER         VENDOR MODEL                             1           6.55  MB /   6.55  MB    512   B +  0 B   REVISION
@@ -106,7 +106,7 @@ delete-ns: Success, deleted nsid:6
 ```
 9. List all NVMe devices and namespaces
 ```
-#sudo ./nvme microsemi list
+#sudo ./nvme switchtec list
 Node                       SN                   Model                                    Namespace Usage                      Format           FW Rev
 -------------------------- -------------------- ---------------------------------------- --------- -------------------------- ---------------- --------
 0x3300n1@/dev/switchtec0   SERIALNUMBER         VENDOR MODEL                             1           6.55  MB /   6.55  MB    512   B +  0 B   REVISION
@@ -119,7 +119,7 @@ Node                       SN                   Model                           
 ### Remote Fabric Manager
 1. List all NVMe devices and namespaces
 ```
-#sudo ./nvme microsemi list -r 10.188.117.80:0
+#sudo ./nvme switchtec list -r 10.188.117.80:0
 Node                       SN                   Model                                    Namespace Usage                      Format           FW Rev
 -------------------------- -------------------- ---------------------------------------- --------- -------------------------- ---------------- --------
 0x3300n1@10.188.117.80:0   SERIALNUMBER         VENDOR MODEL                             1           6.55  MB /   6.55  MB    512   B +  0 B   REVISION
@@ -169,7 +169,7 @@ attach-ns: Success, nsid:6
 ```
 6. List all NVMe devices and namespaces
 ```
-#sudo ./nvme microsemi list -r 10.188.117.80:0
+#sudo ./nvme switchtec list -r 10.188.117.80:0
 Node                       SN                   Model                                    Namespace Usage                      Format           FW Rev
 -------------------------- -------------------- ---------------------------------------- --------- -------------------------- ---------------- --------
 0x3300n1@10.188.117.80:0   SERIALNUMBER         VENDOR MODEL                             1           6.55  MB /   6.55  MB    512   B +  0 B   REVISION
@@ -191,7 +191,7 @@ delete-ns: Success, deleted nsid:6
 ```
 9. List all NVMe devices and namespaces
 ```
-#sudo ./nvme microsemi list -r 10.188.117.80:0
+#sudo ./nvme switchtec list -r 10.188.117.80:0
 Node                       SN                   Model                                    Namespace Usage                      Format           FW Rev
 -------------------------- -------------------- ---------------------------------------- --------- -------------------------- ---------------- --------
 0x3300n1@10.188.117.80:0   SERIALNUMBER         VENDOR MODEL                             1           6.55  MB /   6.55  MB    512   B +  0 B   REVISION
