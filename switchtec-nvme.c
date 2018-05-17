@@ -28,7 +28,7 @@
 #define CREATE_CMD
 
 #include "pax-nvme-device.h"
-#include "microsemi-nvme.h"
+#include "switchtec-nvme.h"
 
 static const char *dev = "/dev/";
 
@@ -123,7 +123,7 @@ static int pax_get_nvme_pf_functions(struct pax_nvme_device *pax, struct fabiov_
 	return index;
 }
 
-static int microsemi_list(int argc, char **argv, struct command *command,
+static int switchtec_pax_list(int argc, char **argv, struct command *command,
 		struct plugin *plugin)
 {
 	char path[264];

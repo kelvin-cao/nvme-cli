@@ -35,7 +35,7 @@ OBJS := argconfig.o suffix.o parser.o nvme-print.o nvme-ioctl.o \
 	nvme-lightnvm.o fabrics.o json.o plugin.o intel-nvme.o \
 	lnvm-nvme.o memblaze-nvme.o wdc-nvme.o wdc-utils.o nvme-models.o \
 	huawei-nvme.o netapp-nvme.o  toshiba-nvme.o pax-nvme-device.o \
-	rc-nvme-device.o microsemi-nvme.o
+	rc-nvme-device.o switchtec-nvme.o
 
 nvme: nvme.c nvme.h $(OBJS) NVME-VERSION-FILE
 	$(CC) $(CPPFLAGS) $(CFLAGS) nvme.c -o $(NVME) $(OBJS) $(LDFLAGS) -lswitchtec
