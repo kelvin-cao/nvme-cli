@@ -8,7 +8,7 @@ By default, a NVMe drive in the PAX fabric cannot be enumerated by hosts. With t
 
 Unlike some of other SR-IOV devices like NICs, the NVMe drives need to be properly configured before using. Normal configuration include create namespace and attache the namespace to a specific VF (NVMe secondary controller). And the configuration need to be done by the Fabric Manager.
 
-Fabric Manager need a method to talk to the NVMe drives in the PAX fabric. Switchtec Gen3 PAX provides a special MRPC command to forward NVMe admin commands to the NVMe drives in the PAX fabric. The MRPC interface is a mechanism to allow hosts issue commands to Switchtec F/W. Two communication channels are provided betwen the Fabric Manager and the PAX switch, they are the inband PCIe channel and the MOE channel.
+Fabric Manager need a method to talk to the NVMe drives in the PAX fabric. Switchtec Gen3 PAX provides a special MRPC command to forward NVMe admin commands to the NVMe drives in the PAX fabric. The MRPC interface is a mechanism to allow hosts issue commands to Switchtec F/W. Two communication channels are provided between the Fabric Manager and the PAX switch, they are the inband PCIe channel and the MOE channel.
 
 Switchtec-nvme-cli is responsible to create NVMe admin commands and deliver them to NVMe drives in PAX fabric through the special MRPC command, over either the inband PCIe channel or the MOE channel.
 
