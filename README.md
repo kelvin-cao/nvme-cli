@@ -10,7 +10,7 @@ Unlike some of other SR-IOV devices like NICs, the NVMe drives need to be proper
 
 Fabric Manager need a method to talk to the NVMe drives in the PAX fabric. Switchtec Gen3 PAX provides a special MRPC command to forward NVMe admin commands to the NVMe drives in the PAX fabric. The MRPC interface is a mechanism to allow hosts issue commands to Switchtec F/W. Two communication channels are provided between the Fabric Manager and the PAX switch, they are the inband PCIe channel and the MOE channel.
 
-Switchtec-nvme-cli is responsible to create NVMe admin commands and deliver them to NVMe drives in PAX fabric through the special MRPC command, over either the inband PCIe channel or the MOE channel.
+Switchtec-nvme-cli is responsible to create NVMe admin commands and deliver them to NVMe drives in PAX fabric through the special MRPC command, either over the inband PCIe channel or over the MOE channel.
 
 For a better understanding of some terms of Switchtec PAX like MRPC, FABRIC MANAGER, MOE, please refer to Switchtec PAX device specification.
 
