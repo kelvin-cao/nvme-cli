@@ -27,6 +27,15 @@ Swichtec-nvme-cli supports following features for NVMe drives behind PAX.
 - Send NVMe Identify Namespace, display structure
 - Send NVMe Identify List, display structure
 
+## Build and Installation
+Switchtec-nvme-cli depends on the [switchtec-user][1] library and [switchtec-kernel][2] driver, among others. Please build and install the switchtec-user library and switchtec-kernel driver before building switchtec-nvme-cli.
+
+To build and install this utility, simply run below commands. 
+```
+#sudo make
+#sudo make install
+```
+
 ## Examples
 Here are some examples of managing the NVMe drives in a PAX fabric. For the NVMe drives connected directly to host, all commands from original nvme-cli are supported without any change.
 
@@ -199,15 +208,6 @@ Node                       SN                   Model                           
 0x3300n3@10.188.117.80:0   SERIALNUMBER         VENDOR MODEL                             3         131.07  MB / 131.07  MB    512   B +  0 B   REVISION
 0x3300n4@10.188.117.80:0   SERIALNUMBER         VENDOR MODEL                             4           2.15  GB /   2.15  GB    512   B +  0 B   REVISION
 0x3300n5@10.188.117.80:0   SERIALNUMBER         VENDOR MODEL                             5           2.15  GB /   2.15  GB    512   B +  0 B   REVISION
-```
-
-## Build and Installation
-Switchtec-nvme-cli depends on the [switchtec-user][1] library and [switchtec-kernel][2] driver, among others. Please build and install the switchtec-user library and switchtec-kernel driver before building switchtec-nvme-cli.
-
-To build and install this utility, simply run below commands. 
-```
-#sudo make
-#sudo make install
 ```
 
 [0]: https://github.com/linux-nvme/nvme-cli
