@@ -2,7 +2,7 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include "nvme-device.h"
-#include "pax-nvme-device.h"
+#include "switchtec-nvme-device.h"
 
 #include <switchtec/switchtec.h>
 #include <switchtec/mrpc.h>
@@ -53,7 +53,9 @@ int pax_nvme_submit_admin_passthru(int fd, struct nvme_passthru_cmd *cmd)
 
 	memcpy(req.nvme_data, (void *)cmd->addr, data_len);
 
-	req.hdr.req_len = htole16(((data_len + 3) & ~3) / 4 + 16);
+//	req.hdr.req_len = htole16(((data_len + 3) & ~3) / 4 + sizeof(req.nvme_sqe));
+//	req.hdr.expected_rsp_len = htole16(((data_len + 3) & ~3) / 4 + sizeof(req.nvme_sqe));
+	req.hdr.expected_rsp_len = (sizeof(rsp.nvme_cqe) + sizeof(rsp.nvme_data))/4;
 
 	ret = switchtec_device_manage(pax->dev,
 				     (struct fabiov_device_manage_req *)&req,

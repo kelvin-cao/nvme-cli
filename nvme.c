@@ -51,7 +51,7 @@
 #include "nvme-print.h"
 #include "nvme-ioctl.h"
 #include "nvme-lightnvm.h"
-#include "pax-nvme-device.h"
+#include "switchtec-nvme-device.h"
 #include "rc-nvme-device.h"
 #include "nvme-device.h"
 #include "plugin.h"
@@ -125,16 +125,19 @@ int open_dev(const char *path)
 			pax->is_blk = 1;
 			pax->ns_id = ns_id;
 		}
-		global_device = &pax->device;
-		global_device->type = NVME_DEVICE_TYPE_PAX;
 
 		pax->dev = switchtec_open(device_str);
 		if (!pax->dev) {
 			switchtec_perror(device_str);
 			free(pax);
+			printf("return here\n");
 			global_device  = NULL;
 			return -ENODEV;
 		}
+
+		global_device = &pax->device;
+		global_device->type = NVME_DEVICE_TYPE_PAX;
+
 		fd = 0;
 		err = 0;
 
@@ -167,21 +170,21 @@ int open_dev(const char *path)
 	return err;
 }
 
-int close_dev()
+int close_dev(struct nvme_device *device)
 {
-	if (!global_device)
+	if (!device)
 		return 0;
 
-	if (global_device->type == NVME_DEVICE_TYPE_PAX) {
+	if (device->type == NVME_DEVICE_TYPE_PAX) {
 		struct pax_nvme_device *pax;
-		pax = to_pax_nvme_device(global_device);
+		pax = to_pax_nvme_device(device);
 		switchtec_close(pax->dev);
 		free(pax);
 
 		return 0;
-	} else if (global_device->type == NVME_DEVICE_TYPE_RC) {
+	} else if (device->type == NVME_DEVICE_TYPE_RC) {
 		struct rc_nvme_device *rc;
-		rc = to_rc_nvme_device(global_device);
+		rc = to_rc_nvme_device(device);
 		free(rc);
 
 		return 0;

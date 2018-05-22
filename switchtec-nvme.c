@@ -27,7 +27,7 @@
 #include <sys/ioctl.h>
 #define CREATE_CMD
 
-#include "pax-nvme-device.h"
+#include "switchtec-nvme-device.h"
 #include "switchtec-nvme.h"
 
 static const char *dev = "/dev/";
@@ -190,13 +190,13 @@ static int switchtec_pax_list(int argc, char **argv, struct command *command,
 
 		pax = malloc(sizeof(struct pax_nvme_device));
 		pax->device.ops = &pax_ops;
-		global_device = &pax->device;
 		pax->dev = switchtec_open(path);
 		if (!pax->dev) {
 			switchtec_perror(path);
 			free(pax);
 			return -ENODEV;
 		}
+		global_device = &pax->device;
 
 		function_n = pax_get_nvme_pf_functions(pax, functions, 1024);
 

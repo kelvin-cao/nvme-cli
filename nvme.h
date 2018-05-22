@@ -150,6 +150,5 @@ int __id_ctrl(int argc, char **argv, struct command *cmd, struct plugin *plugin,
 int validate_output_format(char *format);
 int get_nvme_info(int fd, struct list_item *item, const char *node);
 int open_dev(const char *path);
-int close_dev();
 
 #endif /* _NVME_H */
